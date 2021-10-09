@@ -1,0 +1,80 @@
+version: '3.7'
+services:
+  php:
+    container_name: php
+    image: 'a2media/app:latest'
+    hostname: dev.local
+    depends_on:
+      - db
+      - redis
+    links:
+      - db
+      - redis
+    networks:
+      - php
+      - db
+    volumes:
+      - app:/var/www
+    env_file:
+      - ./data/env/development/.env
+      - ./data/env/development/.env.mariadb
+    command: /bin/sh -c "php-fpm -F"
+    ports:
+      - 222:22/tcp
+  nginx:
+    container_name: nginx
+    image: 'a2media/web:latest'
+    depends_on:
+      - php
+    links:
+      - php
+    volumes_from:
+      - php
+    volumes:
+      - ./storage/web:/data
+    networks:
+      - php
+    ports:
+      - 80:80
+      - 443:443
+    environment:
+      - TZ=Asia/Jakarta
+      - BEDROCK_FASTCGI_PASS=php:9000
+  redis:
+    image: 'amd64/redis'
+    restart: unless-stopped
+    networks:
+      - db
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+      - TZ=Asia/Jakarta
+    volumes:
+      - ./data/config/redis.conf:/usr/local/etc/redis/redis.conf
+      - redis:/data
+    command: /bin/sh -c "redis-server /usr/local/etc/redis/redis.conf"
+    sysctls:
+      net.core.somaxconn: '511'
+  db:
+    tty: true
+    image: 'amd64/mariadb'
+    restart: unless-stopped
+    networks:
+      - db
+    volumes:
+      - ./data/config/mysql.cnf:/etc/mysql/my.cnf
+      - db:/var/lib/mysql
+    env_file:
+      - ./data/env/development/.env.mariadb
+networks:
+  php:
+    driver: bridge
+    driver_opts:
+      com.docker.network.enable_ipv6: "false"
+  db:
+    driver_opts:
+      com.docker.network.enable_ipv6: "false"
+volumes:
+  db:
+  redis:
+  php:
+  nginx:
