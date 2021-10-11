@@ -9,6 +9,7 @@ prod:down;
 	docker-compose -f production.yml up -d;
 down:perm;
 	docker-compose -f development.yml down;
+	echo "y" | docker volume prune;
 build_php:
 	cd ./docker/php && docker build  -t a2media/bedrock:php .
 build_nginx:

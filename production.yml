@@ -2,7 +2,7 @@ version: '3'
 services:
   php:
     container_name: php
-    image: 'a2media/app:latest'
+    image: 'a2media/bedrock:php'
     hostname: dev.local
     depends_on:
       - db
@@ -21,7 +21,7 @@ services:
       - 222:22/tcp
   nginx:
     container_name: nginx
-    image: 'a2media/web:latest'
+    image: 'a2media/bedrock:nginx'
     depends_on:
       - php
     links:

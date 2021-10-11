@@ -16,6 +16,9 @@ RUN apt-get -yf --no-install-recommends install nginx nginx-extras tzdata rsync
 RUN ln -fs /usr/share/zoneinfo/$TZ /etc/localtime  \
     && dpkg-reconfigure -f noninteractive tzdata
 
+RUN /etc/my_init.d/00_regen_ssh_host_keys.sh \
+    && rm -f /etc/service/sshd/down \
+    && openssl dhparam -out /etc/nginx/dhparam.pem 2048
 
 RUN mkdir -p /etc/service/nginx /run/nginx /var/log/nginx\
     && chown -R  $BEDROCK_GUID:$BEDROCK_GUID /run/nginx \
@@ -28,9 +31,6 @@ RUN groupadd -g $BEDROCK_GUID  nginx \
     && /etc/init.d/nginx stop \
     && update-rc.d -f nginx disable
 
-RUN /etc/my_init.d/00_regen_ssh_host_keys.sh \
-    && rm -f /etc/service/sshd/down \
-    && openssl dhparam -out /etc/nginx/dhparam.pem 2048
 RUN sed -i -e 's|listen \[|#listen \[|g' /etc/nginx/sites-available/default
 COPY rootfs/. /tmp/rootfs
 RUN find /tmp/rootfs -type f -exec head -1 {} /dev/null  | awk '/^#!\// { print file } { file = $$0 } ' | awk '{print $$2}'| xargs -r chmod +x \
@@ -46,7 +46,7 @@ RUN find /tmp/rootfs -type f -exec head -1 {} /dev/null  | awk '/^#!\// { print 
  && rm -rf /tmp/{,.[!.],..?}* \
  && rm -rf /var/tmp/{,.[!.],..?}* \
  && find /usr/ -name '*.so' -print -exec sh -c 'file "{}" | grep -q "not stripped" && strip -s "{}"' \;
-ENV BEDROCK_FASTCGI_PASS=127.0.0.1:9000
+ENV BEDROCK_FASTCGI_PASS=php:9000
 WORKDIR /var/www/bedrock/web
 CMD ["/sbin/my_init"]
 EXPOSE 80 443 22

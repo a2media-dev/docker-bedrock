@@ -40,7 +40,7 @@ RUN apt-get install -yq php7.4-mbstring php7.4-cgi php7.4-cli php7.4-dev php7.4-
         php7.4-intl php7.4-sqlite3 php7.4-ldap php7.4-xml php7.4-redis php7.4-fpm \
         php7.4-soap php7.4-bcmath php7.4-fileinfo php7.4-xdebug php7.4-exif php7.4-tokenizer php7.4-psr php7.4-phalcon4 php7.4-apcu \
         php7.4-memcached php7.4-memcache php7.4-swoole
-RUN apt-get install -yq memcached nano
+RUN apt-get install -yq memcached nano zip gzip
 RUN groupadd -g $BEDROCK_GUID  $BEDROCK_USERNAME \
     && useradd -m -s /bin/false -g $BEDROCK_GUID $BEDROCK_USERNAME
 
@@ -56,10 +56,12 @@ RUN sed -i "s/;cgi.fix_pathinfo=1/cgi.fix_pathi nfo=0/"                 /etc/php
 		sed -i "s|post_max_size =.*|post_max_size = 55M|" /etc/php/7.4/fpm/php.ini && \
 		sed -i "s|upload_max_filesize =.*|upload_max_filesize = 55M|" /etc/php/7.4/fpm/php.ini && \
 		sed -i "s|max_file_uploads =.*|max_file_uploads = 3|" /etc/php/7.4/fpm/php.ini && \
-		sed -i "s|memory_limit =.*|memory_limit = ${PHP_MEMORY_LIMIT}|" /etc/php/7.4/fpm/php.ini && \
+		sed -i "s|memory_limit =.*|memory_limit = 512M|" /etc/php/7.4/fpm/php.ini && \
 		sed -i "s|user =.*|user = ${BEDROCK_USERNAME}|" /etc/php/7.4/fpm/pool.d/www.conf  && \
 		sed -i "s|owner =.*|owner = ${BEDROCK_USERNAME}|" /etc/php/7.4/fpm/pool.d/www.conf  && \
 		sed -i "s|group =.*|group = ${BEDROCK_GROUP}|" /etc/php/7.4/fpm/pool.d/www.conf && \
+		sed -i -e "s|^;chdir =.*|chdir = /var/www/|g" /etc/php/7.4/fpm/pool.d/www.conf && \
+		sed -i -e "s|^;access.log =.*|access.log = /var/log/php/\$pool.access.log|g" /etc/php/7.4/fpm/pool.d/www.conf && \
 		sed -i -e "s|^pm.max_children =.*|pm.max_children = 250|g" /etc/php/7.4/fpm/pool.d/www.conf && \
 		sed -i -e "s|^pm.start_servers =.*|pm.start_servers = 8|g" /etc/php/7.4/fpm/pool.d/www.conf && \
 		sed -i -e "s|^pm.min_spare_servers =.*|pm.min_spare_servers = 5|g" /etc/php/7.4/fpm/pool.d/www.conf && \
@@ -75,7 +77,10 @@ RUN mkdir -p /var/www/x-prober \
         && curl -SL https://github.com/kmvan/x-prober/releases/latest/download/prober.php --output /var/www/x-prober/index.php \
         && chown -R ${BEDROCK_UID}:${BEDROCK_GUID} /var/www/x-prober
 
-ENV WP_ROOT=/var/www/bedrock/web
+
+ENV WP_ROOT=/var/www/bedrock/web\
+    WP_CLI_ALLOW_ROOT=True\
+    COMPOSER_ALLOW_SUPERUSER=1
 COPY rootfs/. /tmp/rootfs
 RUN find /tmp/rootfs -type f -exec head -1 {} /dev/null  | awk '/^#!\// { print file } { file = $$0 } ' | awk '{print $$2}'| xargs -r chmod +x \
  && rsync -K -a /tmp/rootfs/ / \
@@ -89,12 +94,24 @@ RUN find /tmp/rootfs -type f -exec head -1 {} /dev/null  | awk '/^#!\// { print 
  && rm -rf /var/lib/apt/lists/{,.[!.],..?}* \
  && rm -rf /tmp/{,.[!.],..?}* \
  && rm -rf /var/tmp/{,.[!.],..?}* \
- && find /usr/ -name '*.so' -print -exec sh -c 'file "{}" | grep -q "not stripped" && strip -s "{}"' \;
+ && find /usr/ -name '*.so' -print -exec sh -c 'file "{}" | grep -q "not stripped" && strip -s "{}"' \; \
+ && php-switch "7.4"
+
+RUN PHP_MODULE_PATH=$(php-config --extension-dir) \
+  && cd /tmp \
+  && wget http://downloads3.ioncube.com/loader_downloads/ioncube_loaders_lin_x86-64.tar.gz \
+  && tar xvfz ioncube_loaders_lin_x86-64.tar.gz \
+  && cp ioncube/ioncube_loader_lin_7.4.so $PHP_MODULE_PATH \
+  && cp ioncube/ioncube_loader_lin_7.4_ts.so $PHP_MODULE_PATH \
+  && echo "zend_extension=ioncube_loader_lin_7.4.so" > /etc/php/7.4/mods-available/ioncube.ini \
+  && for pm in cli cgi fpm apache2; do  ln -sf /etc/php/7.4/mods-available/ioncube.ini /etc/php/7.4/$pm/conf.d/01-ioncube.ini; done;
 
 RUN mkdir -p /var/www/bedrock \
     && cd /var/www/bedrock \
-    && php-switch "7.4" \
     && composer create-project roots/bedrock . \
+    && composer require  oscarotero/env wpackagist-plugin/query-monitor wpackagist-plugin/debug-bar-rewrite-rules wpackagist-plugin/wp-tasks-after-install\
+    wpackagist-plugin/woocommerce wpackagist-plugin/advanced-cron-manager wpackagist-plugin/all-in-one-wp-migration \
+    wpackagist-plugin/multisite-enhancements roots/multisite-url-fixer \
     && composer update --prefer-dist \
     && bedrock-fix-perm
 

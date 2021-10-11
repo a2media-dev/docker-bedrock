@@ -1,0 +1,87 @@
+version: '3'
+services:
+  php:
+    container_name: php
+    image: 'a2media/bedrock:php'
+    hostname: dev.local
+    depends_on:
+      - db
+    links:
+      - db
+    networks:
+      - php
+      - db
+    volumes:
+      - php:/var/www/
+    env_file:
+      - ./data/env/development/.env
+    environment:
+      - TZ=Asia/Jakarta
+      - MARIADB_ROOT_PASSWORD=wp_root_passsword
+      - MARIADB_SKIP_TEST_DB=yes
+      - MARIADB_USER=wp
+      - MARIADB_DATABASE=wp
+      - MARIADB_PASSWORD=wp_passsword
+      - DB_NAME=dev
+      - DB_USER=dev
+      - DB_PASSWORD=wp_passsword
+      - DB_HOST=db
+      - DB_PREFIX=dev_
+      - WP_ENV=development
+      - WP_ENVIRONMENT_TYPE=development
+      - WP_HOME=http://bedrock
+      - WP_SITEURL=http://bedrock/wp
+      - WP_MEMORY_LIMIT=1G
+      - WP_ROOT=/var/www/bedrock/web
+      - WP_DEBUG_LOG=/var/www/bedrock/web/debug.log
+    ports:
+      - 222:22/tcp
+  nginx:
+    container_name: nginx
+    image: 'a2media/bedrock:nginx'
+    depends_on:
+      - php
+    links:
+      - php
+    volumes_from:
+      - php
+    volumes:
+      - nginx:/etc/nginx/
+    networks:
+      - php
+    ports:
+      - 80:80
+      - 443:443
+      - 212:22/tcp
+    environment:
+      - TZ=Asia/Jakarta
+  db:
+    tty: true
+    image: 'amd64/mariadb'
+    restart: unless-stopped
+    networks:
+      - db
+    volumes:
+      - ./data/config/mysql.cnf:/etc/mysql/my.cnf
+      - db:/var/lib/mysql
+    env_file:
+      - ./data/env/development/.env.mariadb
+    environment:
+      - TZ=Asia/Jakarta
+      - MARIADB_ROOT_PASSWORD=wp_root_passsword
+      - MARIADB_SKIP_TEST_DB=yes
+      - MARIADB_USER=wp
+      - MARIADB_DATABASE=wp
+      - MARIADB_PASSWORD=wp_passsword
+networks:
+  php:
+    driver: bridge
+    driver_opts:
+      com.docker.network.enable_ipv6: "false"
+  db:
+    driver_opts:
+      com.docker.network.enable_ipv6: "false"
+volumes:
+  db:
+  php:
+  nginx:

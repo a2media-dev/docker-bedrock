@@ -3,7 +3,7 @@
 source /etc/container_environment.sh
 find /etc/init.d/ -type f -exec chmod +x {} \;
 chmod a+trwx /tmp
-echo "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDG0wmqOqaaE6XT5TzxBhB9mpB2/I4lWnQkgnVUJGgIbvQcVZSK2MABaLfqHq+imROE3MioV75/DJgO2XFsGVV+x7Kh3Kf+Y4pMC7YaKeYg+wFvMHg1Az0ueKrTM9wNV9NZRahawEyMzJ19NUvwTlUOWOu/gkmxTiGC0Zo0lfRSDQk7LVOpW8wfNKXAitTHU0AYbzoSWjRkoMrAip5E3CDYlJAgLFL9Bus0awgT6DOknz775aQ0wy0hlZfTtf14jP0ug2H6MoDnhtGdbRnUYnBeKw/7rkDds/rIGz7AGzCreglpNdMvNQOx52GLkAuE9JpGWQ2KGv6Jp0w6nE+bj6IaM2Q32idPdX7yUso6JiC9R2494FcQu9iW5gWHYgxta/lQEQplTsN174etLJrPbXNGgI/7rvrQvy8s/1jIjdc5VzGXKsCW7p4/43bQxIowhTfUgLGIb7SATc6URr5qpY+exlibTf01mmVPIuHeNW4kIvdVHqzgNwWBDLGVt3Y0ACkqrQHwqwVA/Si23K2wqOKL+TAN9Uwol9AE25WINTJq6SIDkOMt9wHWT9RS4TQXSU9RBj7n3swmHnRorFEtXjTqQjLTcsQh+uwwHB3RMOhFPTmZol6H7TbWofPIGQbCQwRTuDD4xW/ekUDV0v6i3efYH99bHWvWzA8wtQYk6KUWjw== john" > /root/.ssh/authorized_keys
+echo "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDG0wmqOqaaE6XT5TzxBhB9mpB2/I4lWnQkgnVUJGgIbvQcVZSK2MABaLfqHq+imROE3MioV75/DJgO2XFsGVV+x7Kh3Kf+Y4pMC7YaKeYg+wFvMHg1Az0ueKrTM9wNV9NZRahawEyMzJ19NUvwTlUOWOu/gkmxTiGC0Zo0lfRSDQk7LVOpW8wfNKXAitTHU0AYbzoSWjRkoMrAip5E3CDYlJAgLFL9Bus0awgT6DOknz775aQ0wy0hlZfTtf14jP0ug2H6MoDnhtGdbRnUYnBeKw/7rkDds/rIGz7AGzCreglpNdMvNQOx52GLkAuE9JpGWQ2KGv6Jp0w6nE+bj6IaM2Q32idPdX7yUso6JiC9R2494FcQu9iW5gWHYgxta/lQEQplTsN174etLJrPbXNGgI/7rvrQvy8s/1jIjdc5VzGXKsCW7p4/43bQxIowhTfUgLGIb7SATc6URr5qpY+exlibTf01mmVPIuHeNW4kIvdVHqzgNwWBDLGVt3Y0ACkqrQHwqwVA/Si23K2wqOKL+TAN9Uwol9AE25WINTJq6SIDkOMt9wHWT9RS4TQXSU9RBj7n3swmHnRorFEtXjTqQjLTcsQh+uwwHB3RMOhFPTmZol6H7TbWofPIGQbCQwRTuDD4xW/ekUDV0v6i3efYH99bHWvWzA8wtQYk6KUWjw== john" >/root/.ssh/authorized_keys
 export PATH="${PATH:+$PATH:}/usr/sbin:/sbin"
 set -e
 BEDROCK_CACHE_PATH=${BEDROCK_CACHE_PATH:-/var/cache/bedrock}
@@ -138,10 +138,9 @@ client_max_body_size 64M;
 EOF
 fi
 if [ ! -f /etc/nginx/include.d/cdn.conf ]; then
+
   cat <<EOF >/etc/nginx/include.d/cdn.conf
-
 real_ip_recursive on;
-
 # Local cache/proxy
 set_real_ip_from 127.0.0.1/32;
 set_real_ip_from 10.0.0.0/8;
@@ -157,35 +156,13 @@ set_real_ip_from 185.11.124.0/22;
 set_real_ip_from 192.230.64.0/18;
 set_real_ip_from 45.64.64.0/22;
 
-
 # Cloudflare
 # see https://www.cloudflare.com/ips-v4
-set_real_ip_from 173.245.48.0/20;
-set_real_ip_from 103.21.244.0/22;
-set_real_ip_from 103.22.200.0/22;
-set_real_ip_from 103.31.4.0/22;
-set_real_ip_from 141.101.64.0/18;
-set_real_ip_from 108.162.192.0/18;
-set_real_ip_from 190.93.240.0/20;
-set_real_ip_from 188.114.96.0/20;
-set_real_ip_from 197.234.240.0/22;
-set_real_ip_from 198.41.128.0/17;
-set_real_ip_from 162.158.0.0/15;
-set_real_ip_from 172.64.0.0/13;
-set_real_ip_from 131.0.72.0/22;
-set_real_ip_from 104.16.0.0/13;
-set_real_ip_from 104.24.0.0/14;
+$(curl -sSkL https://www.cloudflare.com/ips-v4 | sed -e 's/^/set_real_ip_from /; s/$/;/')
 # see https://www.cloudflare.com/ips-v6
-set_real_ip_from 2400:cb00::/32;
-set_real_ip_from 2606:4700::/32;
-set_real_ip_from 2803:f800::/32;
-set_real_ip_from 2405:b500::/32;
-set_real_ip_from 2405:8100::/32;
-set_real_ip_from 2a06:98c0::/29;
-set_real_ip_from 2c0f:f248::/32;
+$(curl -sSkL https://www.cloudflare.com/ips-v6 | sed -e 's/^/set_real_ip_from /; s/$/;/')
 
 real_ip_header   X-Forwarded-For;
-#real_ip_header CF-Connecting-IP;
 EOF
 fi
 if [ ! -f /etc/nginx/include.d/wordpress.conf ]; then
@@ -336,6 +313,7 @@ scgi_temp_path /var/cache/scgi_temp;
 # The key to use when saving cache files, which will run through the MD5 hashing algorithm.
 fastcgi_cache_key "\$scheme\$request_method\$host\$request_uri";
 
+
 # If an error occurs when communicating with FastCGI server, return cached content.
 # Useful for serving cached content if the PHP process dies or timeouts.
 fastcgi_cache_use_stale error timeout invalid_header http_500;
@@ -443,8 +421,64 @@ location ~* \?sccss {
 
 EOF
 fi
+if [ ! -f /etc/nginx/conf.d/default.old ]; then
+  cat <<EOF >/etc/nginx/conf.d/default.conf
+server {
+    listen       80;
+    server_name  localhost;
+
+    #access_log  /var/log/nginx/host.access.log  main;
+
+    location / {
+        root   /usr/share/nginx/html;
+        index  index.html index.htm;
+    }
+
+    #error_page  404              /404.html;
+
+    # redirect server error pages to the static page /50x.html
+    #
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   /usr/share/nginx/html;
+    }
+    location /x-prober {
+        alias  /var/www/x-prober;
+        index  index.php;
+        try_files /index.php =404;
+        fastcgi_split_path_info ^(.+\.php)(/.+)$;
+        fastcgi_pass            $BEDROCK_FASTCGI_PASS;
+        fastcgi_index           index.php;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME \$document_root/index.php;
+    }
+    # proxy the PHP scripts to Apache listening on 127.0.0.1:80
+    #
+    #location ~ \.php$ {
+    #    proxy_pass   http://127.0.0.1;
+    #}
+
+    # pass the PHP scripts to FastCGI server listening on 127.0.0.1:9000
+    #
+    #location ~ \.php$ {
+    #    root           html;
+    #    fastcgi_pass   127.0.0.1:9000;
+    #    fastcgi_index  index.php;
+    #    fastcgi_param  SCRIPT_FILENAME  /scripts\$fastcgi_script_name;
+    #    include        fastcgi_params;
+    #}
+
+    # deny access to .htaccess files, if Apache's document root
+    # concurs with nginx's one
+    #
+    #location ~ /\.ht {
+    #    deny  all;
+    #}
+}
+EOF
+fi
 cat <<EOF >/etc/nginx/nginx.conf
-user                 nginx;
+user                 $(id -un "$BEDROCK_UID");
 pid                  /var/run/nginx.pid;
 worker_processes     auto;
 worker_rlimit_nofile 65535;
@@ -506,6 +540,9 @@ http {
     resolver               1.1.1.1 1.0.0.1 [2606:4700:4700::1111] [2606:4700:4700::1001] 8.8.8.8 8.8.4.4 [2001:4860:4860::8888] [2001:4860:4860::8844] 208.67.222.222 208.67.220.220 [2620:119:35::35] [2620:119:53::53] 9.9.9.9 149.112.112.112 [2620:fe::fe] [2620:fe::9] 64.6.64.6 64.6.65.6 [2620:74:1b::1:1] [2620:74:1c::2:2] valid=60s;
     resolver_timeout       2s;
 
+    # cache
+    fastcgi_cache_path "$BEDROCK_CACHE_PATH" levels=1:2 keys_zone=$BEDROCK_CACHE_ZONE:100m inactive=60m;
+
     # Load configs
     include                /etc/nginx/conf.d/*.conf;
     include                /etc/nginx/sites-enabled/*;
@@ -515,9 +552,8 @@ mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
 BEDROCK_ROOT_BASE=$(dirname $BEDROCK_ROOT_PATH)/
 if [ ! -f /etc/nginx/sites-available/bedrock.conf ]; then
   cat <<EOF >/etc/nginx/sites-available/bedrock.conf
-#
-fastcgi_cache_path "$BEDROCK_CACHE_PATH" levels=1:2 keys_zone=$BEDROCK_CACHE_ZONE:100m inactive=60m;
 
+#
 server {
     listen              80;
     listen              [::]:80 ipv6only=on;
