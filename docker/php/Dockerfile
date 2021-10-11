@@ -85,18 +85,9 @@ COPY rootfs/. /tmp/rootfs
 RUN find /tmp/rootfs -type f -exec head -1 {} /dev/null  | awk '/^#!\// { print file } { file = $$0 } ' | awk '{print $$2}'| xargs -r chmod +x \
  && rsync -K -a /tmp/rootfs/ / \
  && rm -rf  /tmp/rootfs \
- && chmod 1777 /tmp \
- && apt-get  -y update\
- && apt-get  -y clean\
- && apt-get -y autoremove \
- && unset DEBIAN_FRONTEND\
- && apt-get clean \
- && rm -rf /var/lib/apt/lists/{,.[!.],..?}* \
- && rm -rf /tmp/{,.[!.],..?}* \
- && rm -rf /var/tmp/{,.[!.],..?}* \
- && find /usr/ -name '*.so' -print -exec sh -c 'file "{}" | grep -q "not stripped" && strip -s "{}"' \; \
- && php-switch "7.4"
+ && chmod 1777 /tmp
 
+RUN php-switch "7.4"
 RUN PHP_MODULE_PATH=$(php-config --extension-dir) \
   && cd /tmp \
   && wget http://downloads3.ioncube.com/loader_downloads/ioncube_loaders_lin_x86-64.tar.gz \
@@ -104,7 +95,7 @@ RUN PHP_MODULE_PATH=$(php-config --extension-dir) \
   && cp ioncube/ioncube_loader_lin_7.4.so $PHP_MODULE_PATH \
   && cp ioncube/ioncube_loader_lin_7.4_ts.so $PHP_MODULE_PATH \
   && echo "zend_extension=ioncube_loader_lin_7.4.so" > /etc/php/7.4/mods-available/ioncube.ini \
-  && for pm in cli cgi fpm apache2; do  ln -sf /etc/php/7.4/mods-available/ioncube.ini /etc/php/7.4/$pm/conf.d/01-ioncube.ini; done;
+  && for pm in cli cgi fpm apache2; do  ln -sf /etc/php/7.4/mods-available/ioncube.ini /etc/php/7.4/$pm/conf.d/01-ioncube.ini; done
 
 RUN mkdir -p /var/www/bedrock \
     && cd /var/www/bedrock \
@@ -118,4 +109,13 @@ RUN mkdir -p /var/www/bedrock \
 WORKDIR /var/www/bedrock
 VOLUME ["/var/www/bedrock","/var/www/x-prober"]
 CMD ["/sbin/my_init"]
+RUN apt-get  -y update\
+     && apt-get  -y clean\
+     && apt-get -y autoremove \
+     && unset DEBIAN_FRONTEND\
+     && apt-get clean \
+     && rm -rf /var/lib/apt/lists/{,.[!.],..?}* \
+     && rm -rf /tmp/{,.[!.],..?}* \
+     && rm -rf /var/tmp/{,.[!.],..?}* \
+     && find /usr/ -name '*.so' -print -exec sh -c 'file "{}" | grep -q "not stripped" && strip -s "{}"' \;
 EXPOSE 9000 22
